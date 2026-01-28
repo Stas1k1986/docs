@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Code Library</title>
+<style>
+:root{
+  --bg:#0b0f14;--panel:#0f1520;--panel2:#0c111a;--text:#e6edf3;--muted:#94a3b8;--accent:#22c55e;
+  --border:rgba(148,163,184,.18);--shadow:0 10px 30px rgba(0,0,0,.35);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:var(--sans);background:linear-gradient(180deg,#0b0f14 0%,#070a0f 100%);color:var(--text)}
+.topbar{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;
+  padding:12px 16px;background:rgba(11,15,20,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{font-weight:900;letter-spacing:.2px}
+.themeBar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.themeBtn{padding:10px 12px;border-radius:999px;border:1px solid rgba(148,163,184,.28);background:rgba(15,21,32,.6);
+  color:var(--text);cursor:pointer;font-weight:800}
+.themeBtn:hover{border-color:rgba(34,197,94,.45)}
+.themeBtn.active{border-color:rgba(34,197,94,.65);background:rgba(34,197,94,.14)}
+.actions{display:flex;gap:10px;align-items:center;justify-content:flex-end}
+#search{width:min(520px,38vw);padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);color:var(--text);outline:none}
+#search:focus{border-color:rgba(34,197,94,.6)}
+.btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.12);color:var(--text);cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.wrap{padding:18px;max-width:1200px;margin:0 auto}
+.note{color:var(--muted);font-size:12px;margin-bottom:12px}
+.browser{display:grid;grid-template-columns:420px 1fr;gap:14px;align-items:start}
+.sidebar{border:1px solid var(--border);background:rgba(15,21,32,.7);border-radius:18px;box-shadow:var(--shadow);padding:12px}
+.sectionTitle{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:10px 6px 10px}
+.folders,.files{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border-radius:14px;background:rgba(12,17,26,.35);
+  border:1px solid transparent;cursor:pointer}
+.item:hover{border-color:rgba(148,163,184,.25)}
+.item.active{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.12)}
+.item .left{display:flex;flex-direction:column;gap:2px;min-width:0}
+.item .name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:11px;color:rgba(230,237,243,.9);border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:4px 8px;flex:0 0 auto}
+.viewer{border:1px solid var(--border);background:rgba(15,21,32,.7);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;min-height:560px;display:flex;flex-direction:column}
+.crumbs{color:var(--muted);font-size:12px;padding:10px 14px 0}
+.viewerHeader{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.fileTitle{font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{color:var(--muted);font-size:12px;white-space:nowrap}
+.code{margin:0;padding:14px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.55}
+.footer{padding:10px 16px 18px;color:var(--muted);font-size:12px;max-width:1200px;margin:0 auto}
+@media (max-width:980px){
+  .topbar{grid-template-columns:1fr;gap:10px}
+  .actions{justify-content:flex-start}
+  #search{width:88vw}
+  .browser{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🧩 Code Library</div>
+  <div class="themeBar" id="themeBar"></div>
+  <div class="actions">
+    <input id="search" type="search" placeholder="Пошук по файлах…" autocomplete="off"/>
+    <button id="copyBtn" class="btn" disabled>Скопіювати</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="note">Обери тему кнопками зверху, далі — папку/файл зліва, код — справа. (Це один HTML, працює навіть з file://)</div>
+  <section class="browser">
+    <aside class="sidebar">
+      <div class="sectionTitle">Папки</div>
+      <div class="folders" id="folders"></div>
+      <div class="sectionTitle">Файли</div>
+      <div class="files" id="files"></div>
+    </aside>
+    <section class="viewer">
+      <div class="crumbs" id="crumbs">—</div>
+      <div class="viewerHeader">
+        <div class="fileTitle" id="fileTitle">—</div>
+        <div class="meta" id="meta"></div>
+      </div>
+      <pre id="code" class="code"><code>// Обери тему зверху…</code></pre>
+    </section>
+  </section>
+</main>
+
+<footer class="footer"><span id="status"></span></footer>
+
+<script id="DATA" type="application/json">{"manifest": {"generated_at": "2026-01-28T02:07:35.454221Z", "theme_folders": {"Chocolate": "chocoladapoebana", "Payment": "gptxyinia", "Push Notification": "velukaxyinia1", "Calculate": "velukaxyinia2"}, "themes": {"Chocolate": {"folders": [], "files": [{"name": "Builder.java", "rel": "chocoladapoebana/Builder.java", "path": "files/chocoladapoebana/Builder.java", "size": 115, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}, {"name": "CherrySecret.java", "rel": "chocoladapoebana/CherrySecret.java", "path": "files/chocoladapoebana/CherrySecret.java", "size": 529, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}, {"name": "Chocolate.java", "rel": "chocoladapoebana/Chocolate.java", "path": "files/chocoladapoebana/Chocolate.java", "size": 505, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}, {"name": "Director.java", "rel": "chocoladapoebana/Director.java", "path": "files/chocoladapoebana/Director.java", "size": 89, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}, {"name": "Main.java", "rel": "chocoladapoebana/Main.java", "path": "files/chocoladapoebana/Main.java", "size": 522, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}, {"name": "NewTastesCenter.java", "rel": "chocoladapoebana/NewTastesCenter.java", "path": "files/chocoladapoebana/NewTastesCenter.java", "size": 227, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}, {"name": "VanillaDream.java", "rel": "chocoladapoebana/VanillaDream.java", "path": "files/chocoladapoebana/VanillaDream.java", "size": 526, "ext": ".java", "theme": "Chocolate", "theme_folder": "chocoladapoebana", "subfolder": ""}]}, "Payment": {"folders": [], "files": [{"name": "Main.java", "rel": "gptxyinia/Main.java", "path": "files/gptxyinia/Main.java", "size": 395, "ext": ".java", "theme": "Payment", "theme_folder": "gptxyinia", "subfolder": ""}, {"name": "Media.java", "rel": "gptxyinia/Media.java", "path": "files/gptxyinia/Media.java", "size": 138, "ext": ".java", "theme": "Payment", "theme_folder": "gptxyinia", "subfolder": ""}, {"name": "PushNotification.java", "rel": "gptxyinia/PushNotification.java", "path": "files/gptxyinia/PushNotification.java", "size": 188, "ext": ".java", "theme": "Payment", "theme_folder": "gptxyinia", "subfolder": ""}, {"name": "Reader.java", "rel": "gptxyinia/Reader.java", "path": "files/gptxyinia/Reader.java", "size": 78, "ext": ".java", "theme": "Payment", "theme_folder": "gptxyinia", "subfolder": ""}, {"name": "RSS.java", "rel": "gptxyinia/RSS.java", "path": "files/gptxyinia/RSS.java", "size": 317, "ext": ".java", "theme": "Payment", "theme_folder": "gptxyinia", "subfolder": ""}, {"name": "WebBlog.java", "rel": "gptxyinia/WebBlog.java", "path": "files/gptxyinia/WebBlog.java", "size": 718, "ext": ".java", "theme": "Payment", "theme_folder": "gptxyinia", "subfolder": ""}]}, "Push Notification": {"folders": [], "files": [{"name": "Article.java", "rel": "velukaxyinia1/Article.java", "path": "files/velukaxyinia1/Article.java", "size": 512, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "Basket.java", "rel": "velukaxyinia1/Basket.java", "path": "files/velukaxyinia1/Basket.java", "size": 394, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "CalculateTotal.java", "rel": "velukaxyinia1/CalculateTotal.java", "path": "files/velukaxyinia1/CalculateTotal.java", "size": 363, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "Element.java", "rel": "velukaxyinia1/Element.java", "path": "files/velukaxyinia1/Element.java", "size": 127, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "Main.java", "rel": "velukaxyinia1/Main.java", "path": "files/velukaxyinia1/Main.java", "size": 755, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "PrintReceipt.java", "rel": "velukaxyinia1/PrintReceipt.java", "path": "files/velukaxyinia1/PrintReceipt.java", "size": 452, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "Visitor.java", "rel": "velukaxyinia1/Visitor.java", "path": "files/velukaxyinia1/Visitor.java", "size": 113, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}, {"name": "Voucher.java", "rel": "velukaxyinia1/Voucher.java", "path": "files/velukaxyinia1/Voucher.java", "size": 518, "ext": ".java", "theme": "Push Notification", "theme_folder": "velukaxyinia1", "subfolder": ""}]}, "Calculate": {"folders": [], "files": [{"name": "Article.java", "rel": "velukaxyinia2/Article.java", "path": "files/velukaxyinia2/Article.java", "size": 464, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "Cash.java", "rel": "velukaxyinia2/Cash.java", "path": "files/velukaxyinia2/Cash.java", "size": 282, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "Grocery.java", "rel": "velukaxyinia2/Grocery.java", "path": "files/velukaxyinia2/Grocery.java", "size": 542, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "Main.java", "rel": "velukaxyinia2/Main.java", "path": "files/velukaxyinia2/Main.java", "size": 725, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "Payment.java", "rel": "velukaxyinia2/Payment.java", "path": "files/velukaxyinia2/Payment.java", "size": 61, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "PaymentCard.java", "rel": "velukaxyinia2/PaymentCard.java", "path": "files/velukaxyinia2/PaymentCard.java", "size": 570, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "PaymentCardAdapter.java", "rel": "velukaxyinia2/PaymentCardAdapter.java", "path": "files/velukaxyinia2/PaymentCardAdapter.java", "size": 479, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "PaymentCardService.java", "rel": "velukaxyinia2/PaymentCardService.java", "path": "files/velukaxyinia2/PaymentCardService.java", "size": 314, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "PaymentStatus.java", "rel": "velukaxyinia2/PaymentStatus.java", "path": "files/velukaxyinia2/PaymentStatus.java", "size": 69, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "PayPalAdapter.java", "rel": "velukaxyinia2/PayPalAdapter.java", "path": "files/velukaxyinia2/PayPalAdapter.java", "size": 459, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "PayPalService.java", "rel": "velukaxyinia2/PayPalService.java", "path": "files/velukaxyinia2/PayPalService.java", "size": 293, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}, {"name": "Shop.java", "rel": "velukaxyinia2/Shop.java", "path": "files/velukaxyinia2/Shop.java", "size": 93, "ext": ".java", "theme": "Calculate", "theme_folder": "velukaxyinia2", "subfolder": ""}]}}, "notes": "Якщо підпапки не відповідають темам, відредагуй mapping у manifest.json (theme_folders)."}, "codeMap": {"files/chocoladapoebana/Builder.java": "public interface Builder {\n    \n    void buildBase();\n    void buildFilling();\n    void buildSprinkle();\n\n}\n", "files/chocoladapoebana/CherrySecret.java": "public class CherrySecret implements Builder {\n\n    private String base;\n    private String filling;\n    private String sprinkle;\n\n    @Override\n    public void buildBase() {\n        base = \"Chocolate base\";\n    }\n\n    @Override\n    public void buildFilling() {\n        filling = \"Cherry filling\";\n    }\n\n    @Override \n    public void buildSprinkle() {\n        sprinkle = \"Dark sprinkle\";\n    }\n\n    public Chocolate getChocolate() {\n        return new Chocolate(base, filling, sprinkle);\n    }\n    \n}\n", "files/chocoladapoebana/Chocolate.java": "public class Chocolate {\n    \n    private String base;\n    private String filling;\n    private String sprinkle;\n\n    public Chocolate(String base, String filling, String sprinkle){\n        \n        this.base = base;\n        this.filling = filling;\n        this.sprinkle = sprinkle;\n\n    }\n\n    public String getBase() {\n        return base;\n    }\n\n    public String getFilling() {\n        return filling;\n    }\n\n    public String getSprinkle() {\n        return sprinkle;\n    }\n}\n", "files/chocoladapoebana/Director.java": "public interface Director {\n    \n    public void construct(Builder builder);\n    \n}\n", "files/chocoladapoebana/Main.java": "public class Main {\n    public static void main(String[] args) {\n\n        NewTastesCenter director = new NewTastesCenter();\n\n        VanillaDream vanilla = new VanillaDream();\n        director.construct(vanilla);\n        Chocolate choco1 = vanilla.getChocolate();\n\n        CherrySecret cherry = new CherrySecret();\n        director.construct(cherry);\n        Chocolate choco2 = cherry.getChocolate();\n\n        System.out.println(choco1.getBase());\n        System.out.println(choco2.getFilling());\n    }\n}\n", "files/chocoladapoebana/NewTastesCenter.java": "public class NewTastesCenter implements Director{\n    \n    @Override\n    public void construct(Builder builder) {\n        builder.buildBase();\n        builder.buildFilling();\n        builder.buildSprinkle();\n    }\n\n}\n", "files/chocoladapoebana/VanillaDream.java": "public class VanillaDream  implements Builder {\n\n    private String base;\n    private String filling;\n    private String sprinkle;\n\n    @Override\n    public void buildBase() {\n        base = \"Vanilla base\";\n    }\n\n    @Override\n    public void buildFilling() {\n        filling = \"Cream Vanilla\";\n    }\n\n    @Override\n    public void buildSprinkle() {\n        sprinkle = \"Sugar sprinkle\";\n    }\n\n    public Chocolate getChocolate(){\n        return new Chocolate(base, filling, sprinkle);\n    }\n    \n}\n", "files/gptxyinia/Main.java": "public class Main {\n    public static void main(String[] args) {\n        \n        WebBlog blog = new WebBlog();\n\n        Reader push = new PushNotification();\n        Reader rss = new RSS();\n\n        blog.attach(rss);\n        blog.attach(push);\n\n        blog.publish(\"java\");\n        blog.publish(\"null\");\n\n        blog.detach(push);\n\n        blog.publish(\"rss\");\n\n\n    }\n}\n", "files/gptxyinia/Media.java": "public interface Media {\n\n    void attach(Reader reader);\n    void detach(Reader reader);\n\n    public void notification();\n    \n}\n", "files/gptxyinia/PushNotification.java": "public class PushNotification implements Reader {\n\n    @Override\n    public void update(String article){\n        System.out.println(\"PUSH: new article ->\" + article);\n    }\n    \n}\n", "files/gptxyinia/Reader.java": "public interface Reader {\n\n    public void update(String artide);\n    \n}\n", "files/gptxyinia/RSS.java": "\nimport java.util.List;\nimport java.util.ArrayList;\n\npublic class RSS implements Reader {\n\n    private List<String> articles = new ArrayList<>();\n\n    @Override\n    public void update(String article){\n\n        articles.add(article);\n        System.out.println(\"RSS saved: \" + article);\n\n    }\n    \n}\n", "files/gptxyinia/WebBlog.java": "\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class WebBlog implements Media{\n\n    private List<String> articles = new ArrayList<>();\n    private List<Reader> readers = new ArrayList<>();\n\n    public void publish(String article){\n        articles.add(article);\n        notification();\n    }\n\n    @Override\n    public void attach(Reader reader){\n        readers.add(reader);\n    }\n\n    @Override\n    public void detach(Reader reader){\n        readers.remove(reader);\n    }\n\n    @Override \n    public void notification(){\n        String lastArticle = articles.get(articles.size() - 1);\n\n        for(Reader r : readers){\n            r.update(lastArticle);\n        }\n    }\n}\n", "files/velukaxyinia1/Article.java": "public class Article implements Element {\n\n    private String description;\n    private double price;\n\n    public Article(String description, double price){\n        this.description = description;\n        this.price = price;\n    }\n\n    @Override\n    public String getDescription(){\n        return description;\n    }\n\n    @Override\n    public double getPrice(){\n        return price;\n    }\n\n    @Override\n    public void accept(Visitor visitor){\n        visitor.visit(this);\n    }\n    \n}\n", "files/velukaxyinia1/Basket.java": "import java.util.ArrayList;\nimport java.util.List;\npublic class Basket {\n    \n    private List<Element> elements = new ArrayList<>();\n\n    public void buyArticle(Article article){\n        elements.add(article);\n    }\n\n    public void applyVoucher(Voucher voucher){\n        elements.add(voucher);\n    }\n\n    public List<Element> getElements(){\n        return elements;\n    }\n}\n", "files/velukaxyinia1/CalculateTotal.java": "public class CalculateTotal implements Visitor {\n\n    private double total = 0.0;\n\n    @Override\n    public void visit(Article article){\n        total += article.getPrice();\n    }\n\n    @Override\n    public void visit(Voucher voucher){\n        total -= voucher.getPrice();\n    }\n\n    public double getTotal(){\n        return total;\n    }\n    \n}\n", "files/velukaxyinia1/Element.java": "public interface Element {\n    String getDescription();\n    double getPrice();\n    public void accept(Visitor visitor);\n}\n", "files/velukaxyinia1/Main.java": "public class Main {\n    public static void main(String[] args) {\n\n        Basket basket = new Basket();\n\n        basket.buyArticle(new Article(\"Laptop\", 1000));\n        basket.buyArticle(new Article(\"Mouse\", 50));\n        basket.applyVoucher(new Voucher(\"Discount\", 100));\n\n        // Друк чеку\n        PrintReceipt printReceipt = new PrintReceipt();\n        for (Element e : basket.getElements()) {\n            e.accept(printReceipt);\n        }\n\n        // Підрахунок суми\n        CalculateTotal calculateTotal = new CalculateTotal();\n        for (Element e : basket.getElements()) {\n            e.accept(calculateTotal);\n        }\n\n        System.out.println(\"Total: \" + calculateTotal.getTotal());\n    }\n}\n", "files/velukaxyinia1/PrintReceipt.java": "public class PrintReceipt implements Visitor{\n\n    @Override\n    public void visit(Article article){\n        System.out.print(\"Article: \"\n            + article.getDescription()\n            + \" - \" + article.getPrice()\n        );\n    }\n\n    @Override\n    public void visit(Voucher voucher){\n        System.out.println(\"Voucher: \"\n            + voucher.getDescription()\n            + \" - \" + voucher.getPrice()\n        );\n    }\n    \n}\n", "files/velukaxyinia1/Visitor.java": "public interface Visitor {\n    public void visit(Article article);\n    public void visit(Voucher voucher);\n}\n", "files/velukaxyinia1/Voucher.java": "public class Voucher implements Element {\n\n    private String description;\n    private double price;\n\n    public Voucher(String description, double price){\n\n        this.description = description;\n        this.price = price;\n\n    }\n\n    @Override\n    public String getDescription(){\n        return description;\n    }\n\n    @Override\n    public double getPrice(){\n        return price;\n    }\n\n    @Override\n    public void accept(Visitor visitor){\n        visitor.visit(this);\n    }\n\n    \n}\n", "files/velukaxyinia2/Article.java": "public class Article {\n    \n    private String name;\n    private int quantity;\n    private double price;\n\n    public Article(String name, int quantity, double price){\n        this.name = name;\n        this.quantity= quantity;\n        this.price = price;\n    }\n\n    public String getName(){\n        return name;\n    }\n\n    public int getQuantity(){\n        return quantity;\n    }\n\n    public double getPrice(){\n        return price;\n    }\n}\n", "files/velukaxyinia2/Cash.java": "\npublic class Cash implements Payment, PaymentStatus {\n\n    private String status;\n\n    @Override\n    public void pay(double amount) {\n        status = \"Paid cash: \" + amount;\n    }\n\n    @Override\n    public String getPaymentStatus() {\n        return status;\n    }\n}\n", "files/velukaxyinia2/Grocery.java": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class Grocery implements Shop {\n\n    private List<Article> articles = new ArrayList<>();\n\n    @Override\n    public void sell(Article article) {\n        articles.add(article);\n        System.out.println(\"Sold: \" + article.getName());\n    }\n\n    @Override\n    public void pay(Payment payment) {\n        double total = articles.stream()\n                .mapToDouble(a -> a.getPrice() * a.getQuantity())\n                .sum();\n\n        payment.pay(total);\n    }\n}\n", "files/velukaxyinia2/Main.java": "public class Main {\n    public static void main(String[] args) {\n\n        Shop shop = new Grocery();\n\n        shop.sell(new Article(\"Milk\", 2, 20.0));\n        shop.sell(new Article(\"Bread\", 1, 15.0));\n\n        Payment cash = new Cash();\n        shop.pay(cash);\n        System.out.println(((PaymentStatus) cash).getPaymentStatus());\n\n        Payment card = new PaymentCardAdapter(\n                new PaymentCard(\"1234\", \"12/25\", \"999\"));\n        shop.pay(card);\n        System.out.println(((PaymentStatus) card).getPaymentStatus());\n\n        Payment paypal = new PayPalAdapter(\"user@gmail.com\");\n        shop.pay(paypal);\n        System.out.println(((PaymentStatus) paypal).getPaymentStatus());\n    }\n}\n", "files/velukaxyinia2/Payment.java": "public interface Payment {\n    void pay(double amount);\n}\n", "files/velukaxyinia2/PaymentCard.java": "public class PaymentCard {\n\n    private String cardNumber;\n    private String expiryDate;\n    private String securityCode;\n\n    public PaymentCard(String cardNumber, String expiryDate, String securityCode) {\n        this.cardNumber = cardNumber;\n        this.expiryDate = expiryDate;\n        this.securityCode = securityCode;\n    }\n\n    public String getCardNumber() {\n        return cardNumber;\n    }\n\n    public String getExpiryDate(){\n        return expiryDate;\n    }\n\n    public String getSecurityCode(){\n        return securityCode;\n    }\n}\n", "files/velukaxyinia2/PaymentCardAdapter.java": "public class PaymentCardAdapter implements Payment, PaymentStatus {\n\n    private PaymentCardService service = new PaymentCardService();\n    private PaymentCard card;\n\n    public PaymentCardAdapter(PaymentCard card) {\n        this.card = card;\n    }\n\n    @Override\n    public void pay(double amount) {\n        service.payByPaymentCard(card, amount);\n    }\n\n    @Override\n    public String getPaymentStatus() {\n        return service.getPaymentStatus();\n    }\n}\n", "files/velukaxyinia2/PaymentCardService.java": "public class PaymentCardService {\n\n    private String paymentStatus;\n\n    public void payByPaymentCard(PaymentCard card, double amount) {\n        paymentStatus = \"Paid by card \" + card.getCardNumber() + \": \" + amount;\n    }\n\n    public String getPaymentStatus() {\n        return paymentStatus;\n    }\n}\n", "files/velukaxyinia2/PaymentStatus.java": "public interface PaymentStatus {\n    String getPaymentStatus();\n}\n", "files/velukaxyinia2/PayPalAdapter.java": "public class PayPalAdapter implements Payment, PaymentStatus {\n\n    private PayPalService service = new PayPalService();\n    private String account;\n\n    public PayPalAdapter(String account) {\n        this.account = account;\n    }\n\n    @Override\n    public void pay(double amount) {\n        service.payByPayPal(account, amount);\n    }\n\n    @Override\n    public String getPaymentStatus() {\n        return service.getPaymentStatus();\n    }\n}\n", "files/velukaxyinia2/PayPalService.java": "public class PayPalService {\n\n    private String paymentStatus;\n\n    public void payByPayPal(String account, double amount) {\n        paymentStatus = \"Paid by PayPal (\" + account + \"): \" + amount;\n    }\n\n    public String getPaymentStatus() {\n        return paymentStatus;\n    }\n}\n", "files/velukaxyinia2/Shop.java": "public interface Shop {\n    void sell(Article article);\n    void pay(Payment payment);\n}\n"}}</script>
+<script>
+const $ = (id) => document.getElementById(id);
+const THEMES = ["Chocolate","Payment","Push Notification","Calculate"];
+let manifest, codeMap;
+let currentTheme=null, currentFolder="__ALL__", currentFile=null, currentText="";
+
+function fmtBytes(n){ if(n===0) return "0 B"; const k=1024,s=["B","KB","MB","GB"]; const i=Math.floor(Math.log(n)/Math.log(k)); return (n/Math.pow(k,i)).toFixed(i===0?0:1)+" "+s[i]; }
+function setStatus(m){ $("status").textContent = m||""; }
+
+function renderThemeButtons(){
+  const bar = $("themeBar"); bar.innerHTML="";
+  THEMES.forEach(t=>{
+    const b=document.createElement("button");
+    b.className="themeBtn"+(currentTheme===t?" active":"");
+    b.textContent=t;
+    b.onclick=()=>selectTheme(t);
+    bar.appendChild(b);
+  });
+}
+
+function selectTheme(theme){
+  currentTheme=theme; currentFolder="__ALL__"; currentFile=null; currentText="";
+  $("code").textContent="// Обери файл…"; $("fileTitle").textContent="—"; $("meta").textContent=""; $("copyBtn").disabled=true; $("search").value="";
+  renderThemeButtons(); renderFolders(); renderFiles(); updateCrumbs(); setStatus("Тема: "+theme);
+}
+
+function folderButton(label,key,sub){
+  const div=document.createElement("div");
+  div.className="item"+(currentFolder===key?" active":""); div.tabIndex=0;
+  div.onclick=()=>{ currentFolder=key; currentFile=null; currentText=""; $("copyBtn").disabled=true; $("code").textContent="// Обери файл…"; renderFolders(); renderFiles(); updateCrumbs(); };
+  div.onkeydown=(e)=>{ if(e.key==="Enter") div.click(); };
+  const left=document.createElement("div"); left.className="left";
+  const name=document.createElement("div"); name.className="name"; name.textContent=label;
+  const s=document.createElement("div"); s.className="sub"; s.textContent=sub||"";
+  left.appendChild(name); left.appendChild(s);
+  const badge=document.createElement("div"); badge.className="badge"; badge.textContent=(key==="__ALL__"?"ALL":"DIR");
+  div.appendChild(left); div.appendChild(badge);
+  return div;
+}
+
+function renderFolders(){
+  const wrap=$("folders"); wrap.innerHTML="";
+  if(!currentTheme){ wrap.appendChild(folderButton("—","__ALL__","Спочатку обери тему")); return; }
+  const info=manifest.themes[currentTheme]; const folders=info.folders||[];
+  wrap.appendChild(folderButton("Всі файли","__ALL__", folders.length?"Показати все":"—"));
+  folders.forEach(f=>wrap.appendChild(folderButton(f,f,"Папка")));
+}
+
+function renderFiles(){
+  const wrap=$("files"); wrap.innerHTML="";
+  if(!currentTheme){
+    const empty=document.createElement("div"); empty.className="item"; empty.style.cursor="default";
+    empty.innerHTML=`<div class="left"><div class="name">Оберіть тему</div><div class="sub">Кнопки зверху</div></div>`;
+    wrap.appendChild(empty); return;
+  }
+  const info=manifest.themes[currentTheme];
+  const q=($("search").value||"").trim().toLowerCase();
+  let files=info.files||[];
+  if(currentFolder!=="__ALL__") files=files.filter(f=>f.subfolder===currentFolder);
+  if(q) files=files.filter(f=>(f.name||"").toLowerCase().includes(q)||(f.rel||"").toLowerCase().includes(q));
+
+  if(!files.length){
+    const empty=document.createElement("div"); empty.className="item"; empty.style.cursor="default";
+    empty.innerHTML=`<div class="left"><div class="name">Нічого не знайдено</div><div class="sub">Спробуй інший запит або іншу папку</div></div>`;
+    wrap.appendChild(empty); return;
+  }
+
+  files.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="item"+(currentFile?.path===f.path?" active":""); div.tabIndex=0;
+    div.onclick=()=>selectFile(f);
+    div.onkeydown=(e)=>{ if(e.key==="Enter") selectFile(f); };
+    const left=document.createElement("div"); left.className="left";
+    const name=document.createElement("div"); name.className="name"; name.textContent=f.name;
+    const sub=document.createElement("div"); sub.className="sub"; sub.textContent=f.rel;
+    left.appendChild(name); left.appendChild(sub);
+    const badge=document.createElement("div"); badge.className="badge"; badge.textContent=f.ext||"file";
+    div.appendChild(left); div.appendChild(badge);
+    wrap.appendChild(div);
+  });
+}
+
+function selectFile(f){
+  currentFile=f; updateCrumbs(); renderFiles();
+  $("fileTitle").textContent=f.rel;
+  const text = codeMap[f.path] ?? "// (нема даних)";
+  currentText=text;
+  $("code").textContent=text;
+  $("meta").textContent=`${fmtBytes(f.size)} • ${f.ext||"file"}`;
+  $("copyBtn").disabled = !text;
+  setStatus("Готово ✅");
+}
+
+function updateCrumbs(){
+  if(!currentTheme){ $("crumbs").textContent="—"; return; }
+  const folderLabel = currentFolder==="__ALL__" ? "Всі файли" : currentFolder;
+  const fileLabel = currentFile ? currentFile.name : "—";
+  $("crumbs").textContent = `${currentTheme} → ${folderLabel} → ${fileLabel}`;
+}
+
+(function init(){
+  const payload = JSON.parse($("DATA").textContent);
+  manifest = payload.manifest;
+  codeMap = payload.codeMap;
+
+  renderThemeButtons(); renderFolders(); renderFiles(); updateCrumbs();
+  setStatus("Готово ✅ (обери тему)");
+
+  $("search").addEventListener("input", ()=>renderFiles());
+  $("copyBtn").addEventListener("click", async ()=>{
+    if(!currentText) return;
+    try{ await navigator.clipboard.writeText(currentText); setStatus("Скопійовано ✅"); }
+    catch{
+      const ta=document.createElement("textarea"); ta.value=currentText; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); document.body.removeChild(ta); setStatus("Скопійовано ✅");
+    }
+  });
+})();
+</script>
+</body>
+</html>
